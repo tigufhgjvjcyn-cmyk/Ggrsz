@@ -1507,18 +1507,34 @@ jobs:
         run: |
           $ErrorActionPreference = 'Continue';
           $user          = "$env:RDP_USER";
-          $installerPath = 'C:\Users\runneradmin\Downloads\StarDesk_1.5.2.exe';
+          $downloadDir   = 'C:\Users\runneradmin\Downloads';
+          $installerPath = Join-Path $downloadDir 'StarDesk_Setup.exe';
           $appDir        = 'C:\Program Files\StarDesk';
           $appExe        = 'C:\Program Files\StarDesk\StarDesk.exe';
+          # Link StarDesk chính thức người dùng cung cấp; máy chủ chuyển hướng tới bộ cài Windows mới nhất.
+          $downloadUrl   = 'https://api.stardesk.net/api/v1/release/dl/1?channel=official&utm_source=chatgpt.com&nonce=69tzdO9gpjrUl7nt';
 
           Write-Host "";
           Write-Host "🚀 ĐANG CÀI ĐẶT LẠI & KHỞI CHẠY STARDESK (GIỮ NGUYÊN DỮ LIỆU ĐÃ LƯU)..." -ForegroundColor Yellow;
 
+          if (-not (Test-Path "$downloadDir")) {
+              New-Item -ItemType Directory -Path "$downloadDir" -Force | Out-Null;
+          }
+
+          # Tải bộ cài tự động nếu workflow chưa có sẵn file cài đặt.
           if (-not (Test-Path "$installerPath")) {
-              $altInstaller = [System.IO.Path]::Combine("$env:PROFILE_PATH", 'Downloads', 'StarDesk_1.5.2.exe');
-              if (Test-Path "$altInstaller") {
-                  $installerPath = "$altInstaller";
+              try {
+                  Write-Host "│ 🌐 Đang tải bộ cài StarDesk từ máy chủ chính thức..." -ForegroundColor Cyan;
+                  Invoke-WebRequest -Uri "$downloadUrl" -OutFile "$installerPath" -MaximumRedirection 10 -TimeoutSec 120;
+              } catch {
+                  Write-Host "│ ⚠️ Tải bằng link API thất bại: $($_.Exception.Message)" -ForegroundColor Yellow;
               }
+          }
+
+          # Nếu file cài đặt đã được tải vào thư mục Downloads theo tên khác, dùng file đó.
+          if (-not (Test-Path "$installerPath")) {
+              $altInstaller = Get-ChildItem -Path "$downloadDir" -Filter '*StarDesk*.exe' -File -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName;
+              if ($altInstaller) { $installerPath = $altInstaller; }
           }
 
           if (Test-Path "$installerPath") {
@@ -1541,6 +1557,12 @@ jobs:
               }
               Remove-Job -Job ($sdInstallJob) -Force -ErrorAction SilentlyContinue;
 
+              # Tìm vị trí cài thực tế vì tên/thư mục ứng dụng có thể khác giữa các bản phát hành.
+              if (-not (Test-Path "$appExe")) {
+                  $foundExe = Get-ChildItem -Path @('C:\Program Files','C:\Program Files (x86)',"$env:LOCALAPPDATA") -Filter 'StarDesk.exe' -File -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName;
+                  if ($foundExe) { $appExe = $foundExe; $appDir = Split-Path -Parent $foundExe; }
+              }
+
               if ((-not (Test-Path "$appExe")) -and (-not (Get-Service -Name '*StarDesk*' -ErrorAction SilentlyContinue))) {
                   Write-Host "│ 🔄 Chạy trực tiếp bộ cài $installerPath..." -ForegroundColor Cyan;
                   $proc = Start-Process -FilePath "$installerPath" -PassThru -ErrorAction SilentlyContinue;
@@ -1554,9 +1576,14 @@ jobs:
                       Stop-Process -Id ($proc.Id) -Force -ErrorAction SilentlyContinue;
                   }
               }
-              Write-Host "│ ✅ Đã hoàn tất chạy bộ cài đặt StarDesk_1.5.2.exe" -ForegroundColor Green;
+              Write-Host "│ ✅ Đã hoàn tất chạy bộ cài StarDesk" -ForegroundColor Green;
           } else {
               Write-Host "│ ⚠️  Không tìm thấy file cài đặt tại $installerPath (sẽ thử mở trực tiếp nếu đã có sẵn)" -ForegroundColor Yellow;
+          }
+
+          if (-not (Test-Path "$appExe")) {
+              $foundExe = Get-ChildItem -Path @('C:\Program Files','C:\Program Files (x86)',"$env:LOCALAPPDATA") -Filter 'StarDesk.exe' -File -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName;
+              if ($foundExe) { $appExe = $foundExe; $appDir = Split-Path -Parent $foundExe; }
           }
 
           Get-Service -Name '*StarDesk*' -ErrorAction SilentlyContinue | ForEach-Object {
