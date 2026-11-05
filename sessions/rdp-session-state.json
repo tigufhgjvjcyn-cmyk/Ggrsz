@@ -2,15 +2,15 @@
   "machineId": "may-phu-2",
   "releaseTag": "aistv-storage-may-phu-2",
   "user": "runneradmin",
-  "sid": "S-1-5-21-3977851545-3833041388-3993362562-500",
+  "sid": "S-1-5-21-3708201392-4242277230-667464164-500",
   "password": "Aistv@2026",
   "passwordSource": "fixed_input",
   "windowsImage": "windows-2022",
   "osBuild": "20348",
   "driveLetter": "X",
-  "tailscaleIp": "100.80.57.103",
+  "tailscaleIp": "100.104.211.124",
   "durationMinutes": 300,
-  "startUtc": "2026-11-04T17:46:09.6509058Z",
-  "runId": "41875150635",
-  "lastUpdatedUtc": "2026-11-04T22:11:59.2065963Z"
+  "startUtc": "2026-11-04T22:40:44.4344747Z",
+  "runId": "41924569235",
+  "lastUpdatedUtc": "2026-11-05T03:21:55.2444192Z"
 }
